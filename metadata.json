@@ -1,0 +1,7 @@
+{
+  "name": "UrbanWatch",
+  "description": "An AI-powered civic platform that monitors unresolved complaints, analyzes city patterns, and generates fact-based public reports when service level agreements are breached.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
