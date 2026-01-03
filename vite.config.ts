@@ -8,8 +8,9 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     define: {
-      // We ensure this is stringified. If no key is found, it defaults to an empty string.
-      'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.API_KEY || '')
+      // Separate keys for Gemini and Google Maps
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || ''),
+      'process.env.MAPS_API_KEY': JSON.stringify(env.VITE_MAPS_API_KEY || '')
     },
     server: {
       port: 3000,

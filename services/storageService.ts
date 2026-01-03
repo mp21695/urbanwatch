@@ -27,6 +27,23 @@ function emitSync(action: string, duration = 600) {
   );
 }
 
+/**
+ * Utility to sanitize complaint data and convert GeoPoint objects to strings
+ */
+function sanitizeComplaint(complaint: any): Complaint {
+  const sanitized = { ...complaint };
+  
+  // Convert GeoPoint location to string if it exists
+  if (sanitized.location && typeof sanitized.location === 'object' && ('_lat' in sanitized.location || 'lat' in sanitized.location)) {
+    const geo = sanitized.location;
+    const lat = geo._lat !== undefined ? geo._lat : geo.lat;
+    const lng = geo._long !== undefined ? geo._long : (geo.lng !== undefined ? geo.lng : geo.longitude);
+    sanitized.location = `Lat: ${lat?.toFixed(4) || 'N/A'}, Lng: ${lng?.toFixed(4) || 'N/A'}`;
+  }
+  
+  return sanitized as Complaint;
+}
+
 export const storageService = {
   /**
    * Init hook (kept for compatibility)
@@ -45,10 +62,13 @@ export const storageService = {
     const q = query(complaintsRef, orderBy("timestamp", "desc"));
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map((docSnap) => ({
-      ...(docSnap.data() as Complaint),
-      id: docSnap.id,
-    }));
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return sanitizeComplaint({
+        ...data,
+        id: docSnap.id,
+      });
+    });
   },
 
   async saveComplaint(complaint: Complaint): Promise<void> {

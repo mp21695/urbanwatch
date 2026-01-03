@@ -19,7 +19,7 @@ const Dashboard: React.FC<DashboardProps> = ({ complaints, articles }) => {
   const isVite = !!(import.meta as any).env;
   const envMode = (import.meta as any).env?.MODE || 'Preview';
   const isHMR = !!(import.meta as any).hot;
-  const apiKey = (process.env as any).API_KEY;
+  const mapsApiKey = (process.env as any).MAPS_API_KEY;
 
   useEffect(() => {
     let isMounted = true;
@@ -85,13 +85,31 @@ const Dashboard: React.FC<DashboardProps> = ({ complaints, articles }) => {
 
     if ((window as any).google?.maps) {
       initMap();
-    } else if (apiKey) {
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
-      script.async = true;
-      script.onload = initMap;
-      script.onerror = () => isMounted && setMapStatus('fallback');
-      document.head.appendChild(script);
+    } else if (mapsApiKey) {
+      // Check if script is already being loaded
+      const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`);
+      if (existingScript) {
+        // Script already exists, just wait for it to load
+        if ((window as any).google?.maps) {
+          initMap();
+        } else {
+          const checkInterval = setInterval(() => {
+            if ((window as any).google?.maps && isMounted) {
+              clearInterval(checkInterval);
+              initMap();
+            }
+          }, 100);
+          return () => clearInterval(checkInterval);
+        }
+      } else {
+        // Create new script
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsApiKey}`;
+        script.async = true;
+        script.onload = () => isMounted && initMap();
+        script.onerror = () => isMounted && setMapStatus('fallback');
+        document.head.appendChild(script);
+      }
     } else {
       setMapStatus('fallback');
     }
@@ -100,7 +118,7 @@ const Dashboard: React.FC<DashboardProps> = ({ complaints, articles }) => {
       isMounted = false;
       window.removeEventListener('error', handleMapError);
     };
-  }, [complaints, apiKey]);
+  }, [complaints, mapsApiKey]);
 
   const total = complaints.length;
   const overdue = complaints.filter(c => ((Date.now() - c.timestamp) / 3600000) > c.slaHours && c.status === 'pending').length;
@@ -152,7 +170,7 @@ const Dashboard: React.FC<DashboardProps> = ({ complaints, articles }) => {
             <div className="absolute inset-0 z-10 bg-slate-900 flex flex-col items-center justify-center p-12 overflow-hidden">
               <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#4f46e5 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
               <p className="relative z-20 text-slate-500 font-black text-xs uppercase tracking-[0.4em] animate-pulse">
-                {apiKey ? 'Initializing Metro Grid...' : 'Missing Maps API Key - Fallback Active'}
+                {mapsApiKey ? 'Initializing Metro Grid...' : 'Missing Maps API Key - Fallback Active'}
               </p>
             </div>
           )}
